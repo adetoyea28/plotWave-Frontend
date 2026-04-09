@@ -68,8 +68,14 @@
         }
 
     function drawChart() {
-        data = google.visualization.arrayToDataTable([ ['x_values', 'f(x)'], ...rawResponse.data ]);
+        if (!googleReady || typeof google === 'undefined' || !google.visualization) {
+            return;
+        }
+
         const element = document.getElementById('graph');
+        if (!element || !rawResponse?.data) return;
+
+        data = google.visualization.arrayToDataTable([ ['x_values', 'f(x)'], ...rawResponse.data ]);
         if (!element || !rawResponse?.data) return;
 
         chart = new google.visualization.LineChart(element);
@@ -77,7 +83,7 @@
     }
 
     function handleResize() {
-        if (chart) {
+        if (chart && googleReady) {
             chart.draw(data, options);
         }
     }
