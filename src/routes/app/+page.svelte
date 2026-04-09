@@ -6,31 +6,33 @@
     import NavBar from '$lib/components/header.svelte';
     import { getFunctionData } from '$lib';
     import { onMount } from 'svelte';
+    import { tick } from 'svelte';
+    import Error from '$lib/components/error.svelte';
 
-    let chartElement;
     let data;
     let chart;
-    let rawResponse = {
-        data: [[-1, 3], [0, 2], [1, 5], [2, 4], [3, 4]],
-        y_min: -1,
-        y_max: 7
-    };
+    let chartElement = $state();
+    let errorMsg = $state("");
+    let rawResponse = $state(null);
 
     let functionString = $state();
-        let start = $state();
-        let stop = $state();
-        let interval = $state();
+    let start = $state();
+    let stop = $state();
+    let interval = $state();
+
 
     async function plotGraph(){
+        errorMsg = ""
         const response = await getFunctionData(functionString, start, stop, interval);
-        if (response !== 'error') {
-            console.log(response)
-            rawResponse = response
+        
+        rawResponse = response;
+        if (response.status === 'success') {
+            
+            await tick();
+            drawChart()
         } else {
-            alert("an error occured");
+            errorMsg = response.message;
         }
-
-        drawChart()
     }
 
     onMount(() => {
@@ -39,7 +41,6 @@
             google.charts.setOnLoadCallback(drawChart);
         }
     });
-    const padding = (rawResponse.y_max - rawResponse.y_min) * 0.1
     const options = {
             title: 'Test Graph',
             curveType: 'function',
@@ -61,9 +62,10 @@
 
     function drawChart() {
         data = google.visualization.arrayToDataTable([ ['x_values', 'f(x)'], ...rawResponse.data ]);
+        const element = document.getElementById('graph');
+        if (!element || !rawResponse?.data) return;
 
-
-        chart = new google.visualization.LineChart(document.getElementById('graph'));
+        chart = new google.visualization.LineChart(element);
         chart.draw(data, options)
     }
 
@@ -106,9 +108,13 @@
         <button onclick={plotGraph}>plot curve</button>
     </div>
 
-    <div bind:this={chartElement} class="graph-display" id="graph">
-        
-    </div>
+    {#if rawResponse}
+        {#if rawResponse.status === "success"}
+            <div bind:this={chartElement} class="graph-display" id="graph"></div>
+        {:else if rawResponse.status === "error"}
+            <Error error={errorMsg}/>
+        {/if}
+    {/if}
 
     <div class="function-info">
         <div class="table-of-values">
