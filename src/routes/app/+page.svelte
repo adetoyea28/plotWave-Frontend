@@ -17,6 +17,7 @@
 
     let functionString = $state();
     let start = $state();
+    let googleReady = $state(false);
     let stop = $state();
     let interval = $state();
 
@@ -37,9 +38,15 @@
 
     onMount(() => {
         if (typeof google !== 'undefined') {
-            google.charts.load('current', { packages: ['corechart'] });
-            google.charts.setOnLoadCallback(drawChart);
-        }
+        google.charts.load('current', { packages: ['corechart'] })
+            .then(() => {
+                googleReady = true;
+                if (rawResponse?.status === 'success') {
+                    drawChart();
+                }
+            })
+            .catch(err => console.error("Google Charts failed to load:", err));
+    }
     });
     const options = {
             title: 'Test Graph',
@@ -105,7 +112,11 @@
                 <input bind:value={interval} id="int" type="number" placeholder="1"/>
             </div>
         </div>
-        <button onclick={plotGraph}>plot curve</button>
+        <button 
+            onclick={plotGraph} 
+            disabled={!googleReady}>
+            {googleReady ? 'plot curve' : 'Loading charts...'}
+</button>
     </div>
 
     {#if rawResponse}
